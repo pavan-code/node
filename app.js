@@ -7,9 +7,11 @@ var logger = require('morgan');
 const mongoose = require('mongoose');
 
 var Dishes = require('./models/dishes')
+var Promotions = require('./models/promotions');
+var Leaders = require('./models/leaders');
 
 const url = 'mongodb://localhost:27017/conFusion';
-const connect = mongoose.connect(url, { useNewUrlParser: true});
+const connect = mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex : true});
 
 connect.then(db => {
   console.log("connected to db successfully");
