@@ -40,9 +40,7 @@ exports.jwtPassport = passport.use(new jwtStrategy(opts, function(jwt_payload, d
 exports.verifyUser = passport.authenticate('jwt', { session : false})
 
 exports.verifyAdmin = (req, res, next)=> {
-    // console.log("admin: ",req.user.admin);
     if(req.user.admin) {
-        // console.log("admin active");
         next();
     }
     else {

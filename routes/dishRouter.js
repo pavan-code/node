@@ -33,7 +33,7 @@ dishRouter.route('/')
     .catch(err => next(err));
 })
 
-.put(authenticate.verifyUser, (req, res, next) => {
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on the /dishes')
 })
@@ -63,7 +63,7 @@ dishRouter.route('/:dishId')
     .catch(err => next(err));
 })
 
-.post(authenticate.verifyUser, (req, res, next) => {
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     res.statusCode = 403;
     res.end('POST operation is not supported on /dishes/' + req.params.dishId);
 })
@@ -146,7 +146,7 @@ dishRouter.route('/:dishId/comments')
     res.end('PUT oepration not supported on the /dishes/' + req.params.dishId + '/comments');
 })
 
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Dishes.findById({})
     .then(dish => {
         if(dish != null) {
@@ -237,7 +237,7 @@ dishRouter.route('/:dishId/comments/:commentId')
                 return next(err);
             }
         }   else {
-            var err = new Error('You are not authorized to edit this comment!')
+            var err = new Error('You are not authorized to update this comment!')
             err.status = 403;
             return next(err);
         }
@@ -250,7 +250,7 @@ dishRouter.route('/:dishId/comments/:commentId')
     .then(dish => {
         if(String(req.user._id).trim() == String(dish.comments.id(req.params.commentId).author._id).trim()) {
             if(dish != null && dish.comments.id(req.params.commentId)) {            
-                dish.comments.id(req.params.commentId).deleteOne();            
+                dish.comments.id(req.params.commentId).remove();            
                 dish.save()
                 .then(dish => {
                     Dishes.findById(dish._id)
