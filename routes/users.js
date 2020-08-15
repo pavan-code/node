@@ -54,9 +54,11 @@ router.post("/login", passport.authenticate("local"), (req, res) => {
 });
 
 router.get("/logout", (req, res, next) => {
-  if (req.session) {
-    req.session.destroy();
-    res.clearCookie("session-id");
+  // console.log(res.json());
+  if (passport.authenticate('local')) {
+    
+    // res.clearCookie("session-id");    
+    // res.headers.authorization = null;
     res.redirect("/");
   } else {
     var err = new Error("You are not logged in!");

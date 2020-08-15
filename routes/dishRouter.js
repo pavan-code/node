@@ -22,7 +22,7 @@ dishRouter.route('/')
     .catch(err => next(err));
 })
 
-.post(authenticate.verifyUser, (req, res, next) => {    
+.post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {    
     Dishes.create(req.body)
     .then(dish => {
         res.statusCode = 200;
@@ -38,7 +38,7 @@ dishRouter.route('/')
     res.end('PUT operation not supported on the /dishes')
 })
 
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Dishes.deleteMany({})
     .then(result => {
         res.statusCode = 200;
@@ -68,7 +68,7 @@ dishRouter.route('/:dishId')
     res.end('POST operation is not supported on /dishes/' + req.params.dishId);
 })
 
-.put(authenticate.verifyUser, (req, res, next) => {
+.put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Dishes.findByIdAndUpdate(req.params.dishId, {
         $set : req.body
     }, { new : true })
@@ -80,7 +80,7 @@ dishRouter.route('/:dishId')
     .catch(err => next(err));
 })
 
-.delete(authenticate.verifyUser, (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Dishes.findByIdAndRemove(req.params.dishId)
     .then((result) => {
         res.statusCode = 200;
@@ -202,34 +202,43 @@ dishRouter.route('/:dishId/comments/:commentId')
 })
 
 .put(authenticate.verifyUser, (req, res, next) => {
+    
     Dishes.findById(req.params.dishId)
     .then(dish => {
-        if(dish != null && dish.comments.id(req.params.commentId) != null) {
-            if(req.body.rating) {
-                dish.comments.id(req.params.commentId).rating = req.body.rating;
-            }
-            if(req.body.comment) {
-                dish.comments.id(req.params.commentId).comment = req.body.comment;
-            }
-            dish.save()
-            .then(dish => {
-                Dishes.findById(dish._id)
-                .populate('comments.author')
+        
+        if(String(req.user._id).trim() == String(dish.comments.id(req.params.commentId).author._id).trim()) {
+            
+            if(dish != null && dish.comments.id(req.params.commentId) != null) {
+                if(req.body.rating) {
+                    dish.comments.id(req.params.commentId).rating = req.body.rating;
+                }
+                if(req.body.comment) {
+                    dish.comments.id(req.params.commentId).comment = req.body.comment;
+                }
+                dish.save()
                 .then(dish => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-type', 'application/json')            
-                    res.json(dish);
-                }, err => next(err))
-            }, err => next(err));
-        }
-        else if(dish == null) {
-            err = new Error('Dish ' + req.params.dishId + ' not found');
-            err.status = 404;
-            return next(err);
-        }
-        else {
-            err = new Error('Comment ' + req.params.commentId + ' not found');
-            err.status = 404;
+                    Dishes.findById(dish._id)
+                    .populate('comments.author')
+                    .then(dish => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-type', 'application/json')            
+                        res.json(dish);
+                    }, err => next(err))
+                }, err => next(err));
+            }
+            else if(dish == null) {
+                err = new Error('Dish ' + req.params.dishId + ' not found');
+                err.status = 404;
+                return next(err);
+            }
+            else {
+                err = new Error('Comment ' + req.params.commentId + ' not found');
+                err.status = 404;
+                return next(err);
+            }
+        }   else {
+            var err = new Error('You are not authorized to edit this comment!')
+            err.status = 403;
             return next(err);
         }
     }, err => next(err))
@@ -239,27 +248,34 @@ dishRouter.route('/:dishId/comments/:commentId')
 .delete(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
     .then(dish => {
-        if(dish != null && dish.comments.id(req.params.commentId)) {            
-            dish.comments.id(req.params.commentId).remove();            
-            dish.save()
-            .then(dish => {
-                Dishes.findById(dish._id)
-                .populate('comments.author')
+        if(String(req.user._id).trim() == String(dish.comments.id(req.params.commentId).author._id).trim()) {
+            if(dish != null && dish.comments.id(req.params.commentId)) {            
+                dish.comments.id(req.params.commentId).deleteOne();            
+                dish.save()
                 .then(dish => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-type', 'application/json')            
-                    res.json(dish);
+                    Dishes.findById(dish._id)
+                    .populate('comments.author')
+                    .then(dish => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-type', 'application/json')            
+                        res.json(dish);
+                    }, err => next(err))
                 }, err => next(err))
-            }, err => next(err))
-        }
-        else if(dish == null) {
-            err = new Error('Dish ' + req.params.dishId + ' not found');
-            err.status = 404;
-            return next(err);
+            }
+            else if(dish == null) {
+                err = new Error('Dish ' + req.params.dishId + ' not found');
+                err.status = 404;
+                return next(err);
+            }
+            else {
+                err = new Error('Comment ' + req.params.dishId + ' not found');
+                err.status = 404;
+                return next(err);
+            }
         }
         else {
-            err = new Error('Comment ' + req.params.dishId + ' not found');
-            err.status = 404;
+            var err = new Error('You are not authorized to delete this comment!');
+            err.status = 403;
             return next(err);
         }
     }, err => next(err))
