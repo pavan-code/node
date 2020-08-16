@@ -12,9 +12,10 @@ var Dishes = require("./models/dishes");
 var Promotions = require("./models/promotions");
 var Leaders = require("./models/leaders");
 
+
 const mongoose = require("mongoose");
 const url = config.mongoUrl;
-const connect = mongoose.connect(url, {
+const connect = mongoose.connect(process.env.MONGODB_URI || url, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useCreateIndex: true,
@@ -45,6 +46,10 @@ app.set("view engine", "jade");
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+if(process.env.NODE_ENV === 'production') {
+  app.use(express.static('client/build'));
+}
 
 app.use(passport.initialize());
 
